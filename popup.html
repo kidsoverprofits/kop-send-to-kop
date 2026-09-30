@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Send to KOP</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main class="popup">
+  <h1>Send to Kids Over Profits</h1>
+  <div id="status" class="status" hidden role="status"></div>
+
+  <div id="setup" hidden>
+    <p class="hint">Connect your WordPress account before sending anything.</p>
+    <button class="primary" id="openSettings" type="button">Open settings</button>
+  </div>
+
+  <form id="form" hidden>
+    <fieldset class="types">
+      <legend>Type</legend>
+      <input type="radio" name="type" id="t-website" value="website"><label for="t-website">Website</label>
+      <input type="radio" name="type" id="t-article" value="article"><label for="t-article">Article</label>
+      <input type="radio" name="type" id="t-lawsuit" value="lawsuit"><label for="t-lawsuit">Lawsuit</label>
+      <input type="radio" name="type" id="t-legislation" value="legislation"><label for="t-legislation">Legislation</label>
+    </fieldset>
+
+    <label class="field"><span data-for="website article">Title</span><span data-for="lawsuit">Case name</span><span data-for="legislation">Bill title</span><input name="title" required maxlength="300"></label>
+    <label class="field">Link<input name="url" readonly></label>
+
+    <div class="row" data-for="website article">
+      <label class="field">Date<input name="published" type="date"></label>
+      <label class="field">Author<input name="author"></label>
+    </div>
+    <label class="field" data-for="website article">Publication or site<input name="site_name"></label>
+
+    <div class="detail" data-for="lawsuit">
+      <label class="field">Case number<input name="case_number"></label>
+      <label class="field">Court<input name="court"></label>
+    </div>
+
+    <div class="detail" data-for="legislation">
+      <div class="row">
+        <label class="field">Bill number<input name="bill_number" placeholder="LD 1234"></label>
+        <label class="field">State or US<input name="jurisdiction" maxlength="4" placeholder="ME"></label>
+      </div>
+      <label class="field">Session<input name="session"></label>
+    </div>
+
+    <label class="field">Related facility<input name="facility" placeholder="Facility name"></label>
+    <label class="field">Tags<input name="tags" placeholder="Comma separated"></label>
+    <label class="field">Notes for the reviewer<textarea name="notes" rows="3"></textarea></label>
+
+    <button class="primary" id="submit" type="submit">Add to database</button>
+  </form>
+  <footer><a href="#" id="settingsLink">Settings</a></footer>
+</main>
+<script type="module" src="popup.js"></script>
+</body>
+</html>

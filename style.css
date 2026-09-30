@@ -1,0 +1,59 @@
+/* Kids Over Profits palette (css/colors.css): midnight blue, navy, teal, sand. */
+:root {
+  --ink: #000435;
+  --paper: #f2eedf;
+  --line: #c9c3ad;
+  --muted: #4a4f63;
+  --navy: #000080;
+  --teal: #33a7b5;
+  --ok: #0b5a63;
+  --ok-soft: #dcf0f2;
+  --warn: #7a3e00;
+  --warn-soft: #fff5cb;
+  --err: #9e1b24;
+  --err-soft: #fde4e5;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+body { margin: 0; background: var(--paper); color: var(--ink); }
+.popup { width: 380px; padding: 16px 18px 14px; }
+.options { max-width: 520px; margin: 40px auto; padding: 0 20px; line-height: 1.5; }
+h1 { font-size: 17px; margin: 0 0 12px; letter-spacing: -0.01em; color: var(--ink); }
+p.hint { color: var(--muted); font-size: 13px; margin: 4px 0 14px; }
+
+fieldset.types { padding: 0; margin: 0 0 14px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); border-radius: 6px; overflow: hidden; background: #fff; }
+fieldset.types legend { position: absolute; left: -9999px; }
+.types input { position: absolute; opacity: 0; }
+.types label { text-align: center; font-size: 12.5px; font-weight: 600; padding: 7px 0; cursor: pointer; border-left: 1px solid var(--ink); color: var(--ink); }
+.types label:first-of-type { border-left: 0; }
+.types input:checked + label { background: var(--ink); color: #fff; }
+.types input:focus-visible + label { outline: 2px solid var(--teal); outline-offset: -3px; }
+
+.field { display: block; margin-bottom: 10px; font-size: 12.5px; font-weight: 600; }
+.field input, .field textarea {
+  display: block; width: 100%; box-sizing: border-box; margin-top: 3px;
+  font: 400 13.5px/1.35 inherit; font-family: inherit; color: var(--ink);
+  padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff;
+}
+.field input:focus, .field textarea:focus { outline: 2px solid var(--teal); outline-offset: -1px; border-color: transparent; }
+.field input[readonly] { background: transparent; color: var(--muted); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.detail { border-left: 3px solid var(--teal); padding-left: 10px; margin-bottom: 4px; }
+
+button.primary {
+  width: 100%; padding: 9px; margin-top: 4px; font: 600 14px inherit; font-family: inherit;
+  background: var(--navy); color: #fff; border: 0; border-radius: 5px; cursor: pointer;
+}
+button.primary:hover, button.primary:focus { background: var(--ink); color: #fff; }
+button.primary:disabled { opacity: 0.6; cursor: default; }
+button.primary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+.status { font-size: 13px; padding: 8px 10px; border-radius: 4px; margin-bottom: 12px; }
+.status.ok { background: var(--ok-soft); color: var(--ok); }
+.status.warn { background: var(--warn-soft); color: var(--warn); }
+.status.error { background: var(--err-soft); color: var(--err); }
+.status a { color: inherit; font-weight: 600; }
+footer { margin-top: 10px; font-size: 12px; text-align: right; }
+footer a { color: var(--muted); }
+[hidden] { display: none !important; }
