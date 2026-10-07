@@ -1,9 +1,16 @@
-// Talks to the Kids Over Profits theme (inc/source-submissions.php).
+// Talks to the Kids Over Profits theme: public routes (inc/mobile-submit.php, no account) by default,
+// reviewer routes (inc/source-submissions.php) when an application password is saved.
+// Firefox offers both `browser` and `chrome`; Chrome and Safari offer `chrome`.
+export const api = globalThis.browser ?? globalThis.chrome;
+
+export const PUBLIC_SITE = 'https://kidsoverprofits.org';
+
 export async function getSettings() {
-  return chrome.storage.local.get(['siteUrl', 'username', 'appPassword']);
+  return api.storage.local.get(['siteUrl', 'username', 'appPassword']);
 }
 
-export function hasSettings(s) {
+// Reviewer mode needs a saved username and application password; everyone else sends publicly.
+export function isReviewer(s) {
   return !!(s.siteUrl && s.username && s.appPassword);
 }
 
@@ -27,13 +34,33 @@ export function buildPayload(data, classification) {
   };
 }
 
-async function request(path, options = {}) {
-  const s = await getSettings();
-  if (!hasSettings(s)) {
-    const err = new Error('Add your site and app password in the extension settings first.');
-    err.code = 'no_settings';
+async function publicRequest(path, options = {}) {
+  let res;
+  try {
+    res = await fetch(`${PUBLIC_SITE}/wp-json/kop/v1/mobile${path}`, {
+      ...options,
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+  } catch (_) {
+    throw new Error('Could not reach kidsoverprofits.org. Check your connection.');
+  }
+  let body = {};
+  try { body = await res.json(); } catch (_) { /* non-JSON error page */ }
+  if (!res.ok) {
+    let msg = body.message || `The site returned an error (${res.status}).`;
+    if (res.status === 403 && !body.code) msg = "The site's firewall blocked the request (403).";
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = body;
     throw err;
   }
+  return body;
+}
+
+async function request(path, options = {}) {
+  const s = await getSettings();
+  if (!isReviewer(s)) return publicRequest(path, options);
   const base = s.siteUrl.replace(/\/+$/, '');
   const auth = 'Basic ' + btoa(unescape(encodeURIComponent(`${s.username}:${s.appPassword.replace(/\s+/g, '')}`)));
   let res;
@@ -73,8 +100,20 @@ async function request(path, options = {}) {
   return body;
 }
 
-export function submitSource(payload) {
-  return request('/submit', { method: 'POST', body: JSON.stringify(payload) });
+const PUBLIC_KEYS = [
+  'type', 'url', 'title', 'site_name', 'author', 'published', 'case_number', 'court', 'bill_number',
+  'jurisdiction', 'session', 'facility', 'notes', 'selection', 'submitter_name', 'notify_email', 'newsletter_email',
+];
+
+export async function submitSource(payload) {
+  const s = await getSettings();
+  if (isReviewer(s)) return request('/submit', { method: 'POST', body: JSON.stringify(payload) });
+  const body = {};
+  for (const k of PUBLIC_KEYS) if (payload[k]) body[k] = payload[k];
+  return publicRequest('/submit', {
+    method: 'POST',
+    body: JSON.stringify({ ...body, website_hp: '', via: 'extension' }),
+  });
 }
 
 export function checkDuplicate(payload) {
@@ -85,11 +124,12 @@ export function checkDuplicate(payload) {
   return request(`/check?${q}`);
 }
 
-// One line naming what is already on file, e.g. "Already in the database (article: Title)."
+// One line naming what is already on file. Public answers carry only a status; reviewers also get an id and title.
 export function describeDuplicates(duplicates = []) {
   const names = { news: 'article', lawsuit: 'lawsuit', legislation: 'bill', website: 'website' };
   const first = duplicates[0];
-  if (!first) return 'This link is already in the database.';
+  if (!first) return 'Already on file.';
+  if (first.id === undefined) return `Already on file (${first.status || 'in review'}).`;
   const what = names[first.type] || first.type;
   const status = first.status ? `, ${first.status}` : '';
   return `Already in the database as ${what} #${first.id}${status}: ${first.title || 'untitled'}.`;

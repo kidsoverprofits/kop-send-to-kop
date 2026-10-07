@@ -1,58 +1,79 @@
-# Send to Kids Over Profits (Chrome extension)
+# Send to Kids Over Profits (browser extension)
 
-Sends the page you are on to the Kids Over Profits review queues. The site
-side lives in the theme: `inc/source-submissions.php` (deployed with the rest
-of the theme, nothing to activate). This folder is not deployed; load it into
-Chrome by hand.
+Send the page you are on to Kids Over Profits from Chrome, Edge, Firefox or
+Safari. No account is needed. A person reviews everything before anything
+appears on the site.
 
-## Where things land
-
-| Type        | Stored in                         | Reviewed at |
-|-------------|-----------------------------------|-------------|
-| Article     | `news_submissions`, status `submitted` | Submissions Review, News tab |
-| Lawsuit     | `lawsuits`, `pending`             | Lawsuit admin |
-| Legislation | `legislation`, `pending`, page link in `official_url` | Legislation admin |
-| Website     | `kop_source` posts, `pending`     | KOP Tools > Websites Sent In |
-
-Each one sends the usual admin email. Duplicates are caught with the same rules
-as the public forms (`api/url-dedupe.php`), across all four types; bills also
-match on the same bill number in the same state.
+Server side: `inc/mobile-submit.php` (public) and `inc/source-submissions.php`
+(reviewers), both deployed with the theme. This folder is not deployed.
 
 ## Install
 
-1. In WordPress: Users > Profile > Application Passwords, create one named
-   "Send to KOP". The account needs to be able to edit posts.
-2. In Chrome: open `chrome://extensions`, turn on Developer mode, click
-   "Load unpacked" and choose this folder.
-3. The settings page opens. Enter the site address, your WordPress username
-   and the application password, then save. Chrome asks to let the extension
-   reach the site; choose Allow.
+- From a store: Chrome Web Store (link TBD), Edge Add-ons (link TBD), Firefox
+  Add-ons (link TBD), Safari: not in the Mac App Store yet.
+- Chrome or Edge, unpacked: open `chrome://extensions` (`edge://extensions`),
+  turn on Developer mode, "Load unpacked", choose this folder.
+- Firefox, temporary: `about:debugging` > This Firefox > Load Temporary
+  Add-on > pick `manifest.json`. Needs Firefox 121 or newer.
+- Safari: see below.
 
 ## Using it
 
-- **Toolbar button or Alt+Shift+K:** a form with the type, title, date and
-  case or bill details filled in. Change anything before sending.
-- **Right-click a page > "Send this page to KOP now":** sends at once.
-- **Right-click a link > "Send this link to KOP now":** sends the linked page
-  without opening it (only the link, so the reviewer fills in the rest).
-- Highlight text before sending and it goes into the reviewer's notes.
+- Toolbar button or Alt+Shift+K: a form with the type, title, date and case or
+  bill details filled in. Change anything, then "Send to Kids Over Profits".
+- Optional: your name, an email to hear when it has been reviewed, and "Also
+  sign me up for the newsletter" (needs an email). "Remember me on this
+  browser" keeps the name and email in this browser only.
+- Right-click a page or link > "Send this page/link to KOP now" sends at once.
+- Highlight text first and it goes in as a note for the reviewer.
+- Duplicates show as "Already on file (in review / on the site)".
 
-## Type detection
+## Reviewer sign-in (optional)
 
-`classify.js`: court sites and federal case numbers are lawsuits; Congress.gov,
-LegiScan, GovTrack, Open States and state legislature sites are legislation
-(bill number, state and session read from the URL where possible); pages that
-declare themselves articles or carry a publish date are articles; everything
-else is a website. Add domains to `LAWSUIT_HOSTS` or `LEG_HOSTS` as they come up.
+Everyone else needs no account. Reviewers open the extension's settings page
+and enter a WordPress username and an application password (Users > Profile >
+Application Passwords; the account needs `edit_posts`). The extension then
+uses `/wp-json/kop/v1/extension/*`, adds records straight to the review
+queues and links the admin review pages on duplicates. A different site
+address needs a permission prompt; `https://kidsoverprofits.org` does not.
 
-## Routes
+## Safari
 
-Both need a signed-in user who can `edit_posts`.
+Safari loads web extensions only through Apple's converter, on a Mac with
+Xcode:
 
-- `POST /wp-json/kop/v1/extension/submit`: 201 `{id, type, queue, review_url}`,
-  409 `{duplicates: [{type, id, status, title, review_url}]}`
-- `GET /wp-json/kop/v1/extension/check?url=&title=&site_name=&type=&bill_number=&jurisdiction=`
+1. `xcrun safari-web-extension-converter browser-extension/send-to-kop`
+2. Open the generated Xcode project, pick your team, run it.
+3. Safari > Settings > Extensions: turn on Send to KOP and allow it on
+   kidsoverprofits.org and the sites you send from.
 
-Some hosts strip the `Authorization` header before PHP sees it; the extension
-sends the same credentials in `X-KOP-Authorization`, which the theme copies back
-for these two routes only.
+Safari has no notifications API here, so quick sends show a short badge on the
+toolbar button instead.
+
+## Privacy
+
+It sends only the page you choose (link, title, details read from the page,
+text you highlighted) and what you type in the form. Name and email are sent
+only if you fill them in, and kept in the browser only if you tick "Remember
+me". Nothing else is collected and nothing is sent in the background.
+
+## Publishing (owner)
+
+Run `./package.ps1` (PowerShell) to build `dist/send-to-kop-<version>.zip`.
+
+- Chrome Web Store (also Edge's store takes the same zip): developer account,
+  5 USD once; upload the zip, add screenshots and the privacy text above.
+- Firefox AMO: free account at addons.mozilla.org; upload the same zip. The
+  manifest carries the add-on id and data collection declaration.
+- Safari: needs the Apple Developer Program (99 USD a year) and Xcode; convert
+  as above, then archive and submit through App Store Connect.
+
+## Type detection and routes
+
+`classify.js` guesses article, lawsuit, legislation or website from the host,
+case numbers and bill URLs; add domains to `LAWSUIT_HOSTS` or `LEG_HOSTS`.
+
+- Public: `POST /wp-json/kop/v1/mobile/submit` (201 `{ok,type,queue}`, 409
+  `kop_duplicate`, 429 `kop_rate_limited`), `GET /mobile/check?url=&title=&type=`.
+- Reviewer: `/extension/submit` and `/extension/check` (Basic auth, copied in
+  `X-KOP-Authorization` for hosts that strip the header).

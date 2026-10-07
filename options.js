@@ -1,4 +1,4 @@
-import { checkDuplicate } from './api.js';
+import { api, checkDuplicate } from './api.js';
 
 const form = document.getElementById('form');
 const status = document.getElementById('status');
@@ -9,7 +9,7 @@ function show(message, kind) {
   status.hidden = false;
 }
 
-chrome.storage.local.get(['siteUrl', 'username', 'appPassword']).then((s) => {
+api.storage.local.get(['siteUrl', 'username', 'appPassword']).then((s) => {
   for (const k of ['siteUrl', 'username', 'appPassword']) if (s[k]) form.elements[k].value = s[k];
 });
 
@@ -26,10 +26,10 @@ form.addEventListener('submit', async (e) => {
   }
 
   // Must run before any other await: Chrome only shows the prompt during the click.
-  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+  const granted = await api.permissions.request({ origins: [`${origin}/*`] });
   if (!granted) return show('The extension needs permission to reach your site. Save again and choose Allow.', 'error');
 
-  await chrome.storage.local.set({ ...values, siteUrl: origin });
+  await api.storage.local.set({ ...values, siteUrl: origin });
   show('Testing the connection...', 'warn');
   try {
     const res = await checkDuplicate({ url: 'https://example.com/kop-connection-test' });

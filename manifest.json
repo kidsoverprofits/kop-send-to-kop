@@ -1,22 +1,33 @@
 {
   "manifest_version": 3,
   "name": "Send to Kids Over Profits",
-  "version": "0.2.0",
-  "description": "Send websites, articles, lawsuits, and legislation to the Kids Over Profits review queues.",
+  "version": "0.3.0",
+  "description": "Send the page you are on to Kids Over Profits. A person reviews everything before it appears. No account needed.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Send to KOP",
     "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
   },
   "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
-  "background": { "service_worker": "background.js", "type": "module" },
+  "background": { "service_worker": "background.js", "scripts": ["background.js"], "type": "module" },
   "permissions": ["activeTab", "scripting", "contextMenus", "storage", "notifications"],
+  "host_permissions": ["https://kidsoverprofits.org/*"],
   "optional_host_permissions": ["https://*/*"],
   "options_page": "options.html",
   "commands": {
     "_execute_action": {
       "suggested_key": { "default": "Alt+Shift+K" },
       "description": "Open Send to KOP"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "send-to-kop@kidsoverprofits.org",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["websiteContent"],
+        "optional": ["personallyIdentifyingInfo"]
+      }
     }
   }
 }

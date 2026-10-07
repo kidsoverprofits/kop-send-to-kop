@@ -1,16 +1,17 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Send to KOP settings</title><link rel="stylesheet" href="style.css"></head>
+<head><meta charset="utf-8"><title>Send to KOP reviewer sign-in</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <main class="options">
-  <h1>Connect to Kids Over Profits</h1>
+  <h1>Reviewer sign-in (optional)</h1>
+  <p class="hint">Everyone else needs no account: just use the toolbar button. This page is only for Kids Over Profits reviewers.</p>
   <p class="hint">In WordPress, open Users &gt; Profile, scroll to Application Passwords, and create one named "Send to KOP". Paste it below with your WordPress username. It is stored only in this browser.</p>
   <div id="status" class="status" hidden role="status"></div>
   <form id="form">
     <label class="field">Site address<input name="siteUrl" type="url" value="https://kidsoverprofits.org" required></label>
     <label class="field">WordPress username<input name="username" required autocomplete="username"></label>
     <label class="field">Application password<input name="appPassword" type="password" required autocomplete="off"></label>
-    <button class="primary" type="submit">Save and test connection</button>
+    <button class="primary" type="submit">Save and test sign-in</button>
   </form>
 </main>
 <script type="module" src="options.js"></script>

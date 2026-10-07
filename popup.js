@@ -1,14 +1,21 @@
 import { extractPageData } from './extract.js';
 import { classify } from './classify.js';
-import { getSettings, hasSettings, buildPayload, submitSource, checkDuplicate, describeDuplicates } from './api.js';
+import { api, getSettings, isReviewer, buildPayload, submitSource, checkDuplicate, describeDuplicates } from './api.js';
 
 const $ = (id) => document.getElementById(id);
 const form = $('form');
 let pageData = {};
 
-const openOptions = (e) => { e?.preventDefault(); chrome.runtime.openOptionsPage(); };
+const openOptions = (e) => { e?.preventDefault(); api.runtime.openOptionsPage(); };
 $('settingsLink').addEventListener('click', openOptions);
-$('openSettings').addEventListener('click', openOptions);
+let reviewer = false;
+const emailBox = () => form.elements.notify_email;
+function syncNewsletter() {
+  const box = $('newsletter');
+  const has = emailBox().value.trim() !== '';
+  box.disabled = !has;
+  if (!has) box.checked = false;
+}
 
 function showStatus(message, kind, link, linkText = 'Open review queue') {
   const s = $('status');
@@ -31,13 +38,23 @@ function setType(type) {
 
 async function targetTab() {
   const id = Number(new URLSearchParams(location.search).get('tabId'));
-  if (id) return chrome.tabs.get(id);
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (id) return api.tabs.get(id);
+  const [tab] = await api.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
 
 async function init() {
-  if (!hasSettings(await getSettings())) { $('setup').hidden = false; return; }
+  reviewer = isReviewer(await getSettings());
+  document.querySelectorAll('[data-mode]').forEach((el) => { el.hidden = (el.dataset.mode === 'reviewer') !== reviewer; });
+  if (!reviewer) {
+    const saved = await api.storage.local.get(['rememberMe', 'submitterName', 'submitterEmail']);
+    if (saved.rememberMe) {
+      $('remember').checked = true;
+      form.elements.submitter_name.value = saved.submitterName || '';
+      emailBox().value = saved.submitterEmail || '';
+    }
+    syncNewsletter();
+  }
 
   const tab = await targetTab();
   if (!/^https?:/.test(tab?.url || '')) {
@@ -46,7 +63,7 @@ async function init() {
   }
 
   try {
-    [{ result: pageData }] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extractPageData });
+    [{ result: pageData }] = await api.scripting.executeScript({ target: { tabId: tab.id }, func: extractPageData });
   } catch (_) {
     const u = new URL(tab.url);
     pageData = { url: tab.url, title: tab.title, hostname: u.hostname, pathname: u.pathname };
@@ -64,13 +81,14 @@ async function init() {
 
   try {
     const dup = await checkDuplicate(payload);
-    if (dup.duplicate) showStatus(describeDuplicates(dup.duplicates), 'warn', dup.review_url);
+    if (dup.duplicate) showStatus(describeDuplicates(dup.duplicates), 'warn', reviewer ? dup.review_url : undefined);
   } catch (err) {
     showStatus(err.message, 'error');
   }
 }
 
 form.addEventListener('change', (e) => { if (e.target.name === 'type') setType(e.target.value); });
+form.elements.notify_email.addEventListener('input', syncNewsletter);
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -84,19 +102,33 @@ form.addEventListener('submit', async (e) => {
   // The note already quotes the highlight when it was left in; send it once.
   payload.selection = (payload.notes || '').includes(pageData.selection || '\u0000') ? '' : pageData.selection || '';
   payload.submitted_via = 'extension';
+  if (!reviewer) {
+    payload.newsletter_email = $('newsletter').checked ? (payload.notify_email || '').trim() : '';
+    delete payload.tags;
+    delete payload.newsletter;
+    const remember = $('remember').checked;
+    try {
+      if (remember) {
+        await api.storage.local.set({ rememberMe: true, submitterName: payload.submitter_name || '', submitterEmail: payload.notify_email || '' });
+      } else {
+        await api.storage.local.remove(['rememberMe', 'submitterName', 'submitterEmail']);
+      }
+    } catch (_) { /* storage is a convenience only */ }
+  }
 
   try {
     const res = await submitSource(payload);
-    showStatus(`Added. It is waiting in ${res.queue}.`, 'ok', res.review_url);
+    if (reviewer) showStatus(`Added. It is waiting in ${res.queue}.`, 'ok', res.review_url);
+    else showStatus('Thank you. A person will review this before anything appears on the site.', 'ok');
     button.textContent = 'Added';
   } catch (err) {
     if (err.status === 409) {
-      showStatus(describeDuplicates(err.data?.duplicates), 'warn', err.data?.review_url);
-      button.textContent = 'Already added';
+      showStatus(describeDuplicates(err.data?.duplicates), 'warn', reviewer ? err.data?.review_url : undefined);
+      button.textContent = 'Already on file';
     } else {
       showStatus(err.message, 'error');
       button.disabled = false;
-      button.textContent = 'Add to database';
+      button.textContent = 'Send to Kids Over Profits';
     }
   }
 });

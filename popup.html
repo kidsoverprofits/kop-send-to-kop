@@ -6,11 +6,6 @@
   <h1>Send to Kids Over Profits</h1>
   <div id="status" class="status" hidden role="status"></div>
 
-  <div id="setup" hidden>
-    <p class="hint">Connect your WordPress account before sending anything.</p>
-    <button class="primary" id="openSettings" type="button">Open settings</button>
-  </div>
-
   <form id="form" hidden>
     <fieldset class="types">
       <legend>Type</legend>
@@ -43,12 +38,20 @@
     </div>
 
     <label class="field">Related facility<input name="facility" placeholder="Facility name"></label>
-    <label class="field">Tags<input name="tags" placeholder="Comma separated"></label>
+    <label class="field" data-mode="reviewer">Tags<input name="tags" placeholder="Comma separated"></label>
     <label class="field">Notes for the reviewer<textarea name="notes" rows="3"></textarea></label>
 
-    <button class="primary" id="submit" type="submit">Add to database</button>
+    <div class="detail" data-mode="public">
+      <label class="field">Your name (optional)<input name="submitter_name" autocomplete="name" maxlength="120"></label>
+      <label class="field">Email me when this has been reviewed (optional)<input name="notify_email" type="email" autocomplete="email" maxlength="200"></label>
+      <label class="check"><input type="checkbox" name="newsletter" id="newsletter" disabled> Also sign me up for the newsletter</label>
+      <label class="check"><input type="checkbox" id="remember"> Remember me on this browser</label>
+      <p class="hint">A person reviews everything before it appears on the site.</p>
+    </div>
+
+    <button class="primary" id="submit" type="submit">Send to Kids Over Profits</button>
   </form>
-  <footer><a href="#" id="settingsLink">Settings</a></footer>
+  <footer><a href="#" id="settingsLink">Reviewer sign-in</a></footer>
 </main>
 <script type="module" src="popup.js"></script>
 </body>
