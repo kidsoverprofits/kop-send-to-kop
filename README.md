@@ -37,6 +37,28 @@ uses `/wp-json/kop/v1/extension/*`, adds records straight to the review
 queues and links the admin review pages on duplicates. A different site
 address needs a permission prompt; `https://kidsoverprofits.org` does not.
 
+### The News Processor for reviewers
+
+Signed in, an Article gets the News Processor's fields in the popup
+(`inc/extension-news-processor.php` on the site):
+
+- "Fill the fields with AI" reads the article text on the tab (so paywalled
+  or script-drawn pages work) and fills in the summary, alternate title,
+  type and its details, location, facilities, staff, survivors, content
+  warnings and tags. Optional instructions for the AI under the button.
+- "Add to the review queue" files it as submitted with every field filled in;
+  "Publish on the site now" (admins only, `manage_options`) files it approved,
+  listed under Recently done on the review page with Undo.
+
+## The real link and the archived copy
+
+Articles carry both: "Link" is the article itself, "Archived copy" a
+Wayback Machine or archive.today copy (`news_submissions.archive_url`).
+Sent from a Wayback page, the extension takes the page inside it as the
+link and the Wayback address as the copy. "Archive now" opens the Wayback
+Machine's save page in a new tab; signed-in reviewers also get "Find", and
+the newest Wayback copy is looked up as the popup opens.
+
 ## Safari
 
 Safari loads web extensions only through Apple's converter, on a Mac with
@@ -75,5 +97,7 @@ case numbers and bill URLs; add domains to `LAWSUIT_HOSTS` or `LEG_HOSTS`.
 
 - Public: `POST /wp-json/kop/v1/mobile/submit` (201 `{ok,type,queue}`, 409
   `kop_duplicate`, 429 `kop_rate_limited`), `GET /mobile/check?url=&title=&type=`.
-- Reviewer: `/extension/submit` and `/extension/check` (Basic auth, copied in
-  `X-KOP-Authorization` for hosts that strip the header).
+- Reviewer: `/extension/submit` (`full=1` with the processor's fields,
+  `publish=1` to file it approved) and `/extension/check` (Basic auth, copied in
+  `X-KOP-Authorization` for hosts that strip the header); the panel also reads
+  `/extension/news-form`, `/extension/process` (AI) and `/extension/archive`.

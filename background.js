@@ -1,5 +1,6 @@
 import { extractPageData } from './extract.js';
 import { classify } from './classify.js';
+import { unwrapPageData } from './archive.js';
 import { api, isReviewer, getSettings, submitSource, buildPayload, describeDuplicates } from './api.js';
 
 const TYPE_LABELS = { website: 'Website', article: 'Article', lawsuit: 'Lawsuit', legislation: 'Legislation' };
@@ -55,13 +56,14 @@ api.contextMenus.onClicked.addListener(async (info, tab) => {
       const u = new URL(tab.url);
       data = { url: tab.url, title: tab.title, hostname: u.hostname, pathname: u.pathname };
     }
+    data = unwrapPageData(data);
     return send(buildPayload(data, classify(data)));
   }
 
   if (info.menuItemId === 'kop-send-link') {
     if (!/^https?:/.test(info.linkUrl || '')) return notify('Not sent', 'Only web links can be sent.');
     const u = new URL(info.linkUrl);
-    const data = { url: info.linkUrl, title: info.selectionText || info.linkUrl, hostname: u.hostname, pathname: u.pathname };
+    const data = unwrapPageData({ url: info.linkUrl, title: info.selectionText || info.linkUrl, hostname: u.hostname, pathname: u.pathname });
     return send(buildPayload(data, classify(data)));
   }
 });

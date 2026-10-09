@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Send to Kids Over Profits",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Send the page you are on to Kids Over Profits. A person reviews everything before it appears. No account needed.",
   "action": {
     "default_popup": "popup.html",

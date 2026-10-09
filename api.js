@@ -23,6 +23,7 @@ function toDate(value) {
 export function buildPayload(data, classification) {
   return {
     url: data.canonical || data.url,
+    archive_url: data.archiveUrl || '',
     title: data.title || data.url,
     type: classification.type,
     published: toDate(data.published),
@@ -101,7 +102,7 @@ async function request(path, options = {}) {
 }
 
 const PUBLIC_KEYS = [
-  'type', 'url', 'title', 'site_name', 'author', 'published', 'case_number', 'court', 'bill_number',
+  'type', 'url', 'archive_url', 'title', 'site_name', 'author', 'published', 'case_number', 'court', 'bill_number',
   'jurisdiction', 'session', 'facility', 'notes', 'selection', 'submitter_name', 'notify_email', 'newsletter_email',
 ];
 
@@ -118,7 +119,7 @@ export async function submitSource(payload) {
 
 export function checkDuplicate(payload) {
   const q = new URLSearchParams();
-  for (const k of ['url', 'title', 'site_name', 'type', 'bill_number', 'jurisdiction']) {
+  for (const k of ['url', 'archive_url', 'title', 'site_name', 'type', 'bill_number', 'jurisdiction']) {
     if (payload[k]) q.set(k, payload[k]);
   }
   return request(`/check?${q}`);
@@ -133,4 +134,17 @@ export function describeDuplicates(duplicates = []) {
   const what = names[first.type] || first.type;
   const status = first.status ? `, ${first.status}` : '';
   return `Already in the database as ${what} #${first.id}${status}: ${first.title || 'untitled'}.`;
+}
+
+// Reviewer panel (inc/extension-news-processor.php): the choices it offers, the AI read, the newest Wayback copy.
+export function getNewsForm() {
+  return request('/news-form');
+}
+
+export function processArticle(body) {
+  return request('/process', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function findArchive(url) {
+  return request(`/archive?${new URLSearchParams({ url })}`);
 }

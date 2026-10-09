@@ -45,5 +45,12 @@ export function extractPageData() {
     legislationId: ldLeg?.legislationIdentifier || '',
     selection: (window.getSelection()?.toString() || '').trim().slice(0, 2000),
     bodySample: (document.body?.innerText || '').slice(0, 6000),
+    // The article's own text for the reviewer panel's AI read (never sent with a plain send).
+    articleText: (() => {
+      const pick = [...document.querySelectorAll('article, [itemprop="articleBody"], main, [role="main"]')]
+        .map((el) => el.innerText || '')
+        .sort((x, y) => y.length - x.length)[0] || '';
+      return (pick.length >= 600 ? pick : document.body?.innerText || '').slice(0, 30000);
+    })(),
   };
 }

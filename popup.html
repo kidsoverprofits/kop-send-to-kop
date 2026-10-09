@@ -15,8 +15,28 @@
       <input type="radio" name="type" id="t-legislation" value="legislation"><label for="t-legislation">Legislation</label>
     </fieldset>
 
+    <div class="detail ai" data-for="article" data-mode="reviewer">
+      <button type="button" class="secondary" id="aiFill">Fill the fields with AI</button>
+      <details class="more">
+        <summary>Instructions for the AI</summary>
+        <label class="field">What to watch for (optional)<textarea name="ai_instructions" rows="2" placeholder="Focus on the ownership change"></textarea></label>
+      </details>
+      <p class="hint" id="aiStatus" role="status">Reads the article on this tab and fills in the summary, warnings, people and type. Check everything before saving.</p>
+    </div>
+
     <label class="field"><span data-for="website article">Title</span><span data-for="lawsuit">Case name</span><span data-for="legislation">Bill title</span><input name="title" required maxlength="300"></label>
-    <label class="field">Link<input name="url" readonly></label>
+    <label class="field" data-for="article" data-mode="reviewer">Alternate title (if the headline is sensational or graphic)<input name="alternate_title" maxlength="300"></label>
+    <label class="field">Link<span data-for="article"> (the article itself)</span><input name="url" readonly></label>
+
+    <div class="field" data-for="article">
+      <label for="archiveUrl">Archived copy</label>
+      <div class="inline">
+        <input name="archive_url" id="archiveUrl" type="url" placeholder="https://web.archive.org/web/...">
+        <button type="button" class="small" id="findArchive" data-mode="reviewer">Find</button>
+        <button type="button" class="small" id="archiveNow">Archive now</button>
+      </div>
+      <span class="hint" id="archiveStatus">Optional. A Wayback Machine or archive.today copy, in case the article moves or goes behind a paywall.</span>
+    </div>
 
     <div class="row" data-for="website article">
       <label class="field">Date<input name="published" type="date"></label>
@@ -37,7 +57,26 @@
       <label class="field">Session<input name="session"></label>
     </div>
 
-    <label class="field">Related facility<input name="facility" placeholder="Facility name"></label>
+    <label class="field" data-not-for="article-reviewer">Related facility<input name="facility" placeholder="Facility name"></label>
+
+    <div data-for="article" data-mode="reviewer">
+      <div class="row">
+        <label class="field">Article type<select name="article_type" id="articleType"></select></label>
+        <label class="field">Location<input name="location" placeholder="City, State"></label>
+      </div>
+      <div class="detail" id="typeDetails" hidden></div>
+      <label class="field">Facilities and companies mentioned (one per line)<textarea name="facilities" rows="3"></textarea></label>
+      <div class="row">
+        <label class="field">Staff and owners (one per line)<textarea name="staff" rows="3"></textarea></label>
+        <label class="field">Survivors and victims (one per line)<textarea name="survivors" rows="3"></textarea></label>
+      </div>
+      <label class="field">Summary (2-3 factual, trauma-sensitive sentences)<textarea name="summary" rows="4"></textarea></label>
+      <fieldset class="warnings">
+        <legend>Content warnings</legend>
+        <div id="warnings"></div>
+      </fieldset>
+    </div>
+
     <label class="field" data-mode="reviewer">Tags<input name="tags" placeholder="Comma separated"></label>
     <label class="field">Notes for the reviewer<textarea name="notes" rows="3"></textarea></label>
 
@@ -49,7 +88,9 @@
       <p class="hint">A person reviews everything before it appears on the site.</p>
     </div>
 
-    <button class="primary" id="submit" type="submit">Send to Kids Over Profits</button>
+    <!-- Queue first: Enter in a field presses the first button, never Publish. -->
+    <button class="primary" id="submit" type="submit" value="queue">Send to Kids Over Profits</button>
+    <button class="primary" id="publish" type="submit" value="publish" hidden>Publish on the site now</button>
   </form>
   <footer><a href="#" id="settingsLink">Reviewer sign-in</a></footer>
 </main>
