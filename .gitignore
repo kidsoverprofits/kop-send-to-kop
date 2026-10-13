@@ -1,0 +1,7 @@
+# Store zips from package.ps1
+dist/
+
+.DS_Store
+Thumbs.db
+.claude/
+node_modules/

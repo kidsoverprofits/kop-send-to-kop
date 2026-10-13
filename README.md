@@ -5,7 +5,11 @@ Safari. No account is needed. A person reviews everything before anything
 appears on the site.
 
 Server side: `inc/mobile-submit.php` (public) and `inc/source-submissions.php`
-(reviewers), both deployed with the theme. This folder is not deployed.
+(reviewers) in the theme repository, `Kids-Over-Profits`. This repository is
+the extension alone (it was `browser-extension/send-to-kop/` in the theme
+until October 2026); nothing here is deployed to the site. The mobile app
+(`kids-over-profits-mobile`) carries a port of `classify.js` in
+`src/lib/classify.ts`: a rule changed here is changed there too.
 
 ## Install
 
@@ -64,7 +68,7 @@ the newest Wayback copy is looked up as the popup opens.
 Safari loads web extensions only through Apple's converter, on a Mac with
 Xcode:
 
-1. `xcrun safari-web-extension-converter browser-extension/send-to-kop`
+1. `xcrun safari-web-extension-converter .` (from this folder)
 2. Open the generated Xcode project, pick your team, run it.
 3. Safari > Settings > Extensions: turn on Send to KOP and allow it on
    kidsoverprofits.org and the sites you send from.
@@ -81,7 +85,9 @@ me". Nothing else is collected and nothing is sent in the background.
 
 ## Publishing (owner)
 
-Run `./package.ps1` (PowerShell) to build `dist/send-to-kop-<version>.zip`.
+Run `./package.ps1` (PowerShell) to build `dist/send-to-kop-<version>.zip`
+(`dist/` is ignored by git). `npx web-ext lint --source-dir .` checks the
+manifest; one warning is expected (Firefox ignores `background.service_worker`).
 
 - Chrome Web Store (also Edge's store takes the same zip): developer account,
   5 USD once; upload the zip, add screenshots and the privacy text above.
