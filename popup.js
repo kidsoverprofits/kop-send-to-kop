@@ -272,6 +272,7 @@ function collect(publish) {
     for (const k of panelFields) delete payload[k];
   }
   if (payload.type !== 'article') delete payload.archive_url;
+  if (payload.type !== 'website') delete payload.website_kind;
   return payload;
 }
 

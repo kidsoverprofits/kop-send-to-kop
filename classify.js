@@ -13,7 +13,36 @@ const CASE_LABEL_RE = /\b(?:Case|Docket|Civil Action)\s*(?:No\.?|Number|#)\s*:?\
 const COURT_RE = /\b((?:United States|U\.S\.)\s+(?:District Court|Court of Appeals|Bankruptcy Court)[^\n.;]{0,60}|(?:Superior|Circuit|District|Supreme|Chancery)\s+Court\s+(?:of|for)\s+[^\n.;]{3,50})/;
 const BILL_RE = /\b(H\.?\s?R\.?|H\.?\s?B\.?|S\.?\s?B\.?|A\.?\s?B\.?|L\.?\s?D\.?|H\.?\s?F\.?|S\.?\s?F\.?|S\.)\s?(\d{1,5})\b/;
 
+// Hosts that are never news, with the kind of website they are. Kept in step with the site's
+// kop_ext_website_guess_kind() (inc/source-submissions.php), which guesses again when no kind is sent.
+const KIND_HOSTS = [
+  ['reddit', ['reddit.com', 'redd.it']],
+  ['archive', ['web.archive.org', 'archive.org', 'archive.today', 'archive.ph', 'archive.is']],
+  ['forum', ['fornits.com', 'fornits.org']],
+  ['media', ['youtube.com', 'youtu.be', 'vimeo.com', 'podcasts.apple.com', 'open.spotify.com', 'soundcloud.com']],
+  ['staff', ['zoominfo.com', 'rocketreach.co', 'signalhire.com', 'contactout.com', 'doximity.com', 'healthgrades.com', 'npiprofile.com', 'npino.com']],
+  ['business', ['opencorporates.com', 'bizapedia.com', 'corporationwiki.com', 'bizprofile.net', 'buzzfile.com', 'dnb.com',
+    'opengovus.com', 'zillow.com', 'redfin.com', 'loopnet.com', 'realtor.com']],
+  ['social', ['facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'tiktok.com', 'threads.net', 'bsky.app', 'linkedin.com']],
+  ['blog', ['wordpress.com', 'blogspot.com', 'medium.com', 'substack.com', 'tumblr.com']],
+  ['directory', ['psychologytoday.com', 'yelp.com', 'glassdoor.com', 'indeed.com', 'bbb.org', 'findtreatment.gov', 'natsap.org']],
+];
+// Forum software leaves these in the address or the page.
+const FORUM_PATH = /\/(forums?|threads?|topic|viewtopic\.php|showthread\.php|discussion|t)\//i;
+const NEWS_LD = /NewsArticle|Reportage|AnalysisNewsArticle|OpinionNewsArticle|ReviewNewsArticle|BackgroundNewsArticle/;
+
 const matches = (host, list) => list.some((r) => r.test(host));
+const onHost = (host, list) => list.some((h) => host === h || host.endsWith(`.${h}`));
+
+/** The kind of website (kop_ext_website_kinds() keys), or '' when the address does not say. */
+export function websiteKind(host, path = '') {
+  host = host.replace(/^(www|old|m)\./, '');
+  if (onHost(host, ['linkedin.com']) && /^\/(in|pub)\//i.test(path)) return 'staff';
+  for (const [kind, hosts] of KIND_HOSTS) if (onHost(host, hosts)) return kind;
+  if (/\.(gov|mil)$|\.state\.[a-z]{2}\.us$|\.gov\.[a-z]{2}$/.test(host)) return 'government';
+  if (FORUM_PATH.test(path) || /^(forums?|community|boards?)\./.test(host)) return 'forum';
+  return '';
+}
 const cleanBill = (m) => `${m[1].replace(/[.\s]/g, '').toUpperCase()} ${m[2]}`;
 
 const CONGRESS_PREFIX = {
@@ -60,9 +89,19 @@ export function classify(data) {
     return { type: 'legislation', fields };
   }
 
-  const articleish =
-    /article/i.test(data.ogType || '') ||
-    (data.ldTypes || []).some((t) => /Article|BlogPosting|Report/.test(t)) ||
-    !!data.published;
-  return { type: articleish ? 'article' : 'website', fields };
+  // A news article says so (NewsArticle in its JSON-LD) or is a dated article on a site that is not one
+  // of the never-news kinds above. og:type=article alone proves nothing: WordPress SEO plugins put it on
+  // every page, program pages included.
+  const kind = websiteKind(host, data.pathname || '');
+  const ld = data.ldTypes || [];
+  const dated = !!data.published;
+  // A blog post that never calls itself news is a website (survivor blogs, program blogs).
+  const blogOnly = ld.some((t) => /BlogPosting/.test(t)) && !ld.some((t) => NEWS_LD.test(t));
+  const articleish = !kind && !blogOnly && (
+    ld.some((t) => NEWS_LD.test(t)) ||
+    (dated && (/article/i.test(data.ogType || '') || ld.some((t) => /Article|Report/.test(t))))
+  );
+  if (articleish) return { type: 'article', fields };
+  fields.website_kind = kind || (blogOnly ? 'blog' : '');
+  return { type: 'website', fields };
 }
