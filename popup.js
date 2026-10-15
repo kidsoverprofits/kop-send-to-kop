@@ -3,7 +3,7 @@ import { classify } from './classify.js';
 import { unwrapPageData } from './archive.js';
 import {
   api, getSettings, isReviewer, buildPayload, submitSource, checkDuplicate, describeDuplicates,
-  getNewsForm, processArticle, findArchive,
+  getNewsForm, processArticle, findArchive, getWebsiteKinds,
 } from './api.js';
 
 const $ = (id) => document.getElementById(id);
@@ -190,7 +190,20 @@ $('aiFill').addEventListener('click', aiFill);
 
 /* ---------- Start ---------- */
 
+// Replaces the built-in kinds with the site's list (choices added at KOP Tools > Dropdown Lists); keeps them when the site cannot be reached.
+async function loadWebsiteKinds() {
+  let kinds;
+  try { kinds = await getWebsiteKinds(); } catch (_) { return; }
+  if (!Array.isArray(kinds) || !kinds.length) return;
+  const select = form.elements.website_kind;
+  const keep = select.value;
+  select.replaceChildren(new Option('Not sure', ''));
+  for (const k of kinds) select.add(new Option(k.label, k.value));
+  select.value = keep;
+}
+
 async function init() {
+  const kindsLoaded = loadWebsiteKinds();
   reviewer = isReviewer(await getSettings());
   if (!reviewer) {
     const saved = await api.storage.local.get(['rememberMe', 'submitterName', 'submitterEmail']);
@@ -225,6 +238,7 @@ async function init() {
     }
   }
 
+  await kindsLoaded;
   const classification = classify(pageData);
   const payload = buildPayload(pageData, classification);
   for (const [key, value] of Object.entries(payload)) {

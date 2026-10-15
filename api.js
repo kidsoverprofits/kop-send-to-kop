@@ -136,6 +136,11 @@ export function describeDuplicates(duplicates = []) {
   return `Already in the database as ${what} #${first.id}${status}: ${first.title || 'untitled'}.`;
 }
 
+// The "Kind of website" choices from KOP Tools > Dropdown Lists ([{value, label}]); popup.html's options are the fallback.
+export function getWebsiteKinds() {
+  return publicRequest('/website-kinds');
+}
+
 // Reviewer panel (inc/extension-news-processor.php): the choices it offers, the AI read, the newest Wayback copy.
 export function getNewsForm() {
   return request('/news-form');
