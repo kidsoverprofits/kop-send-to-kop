@@ -54,6 +54,21 @@ Signed in, an Article gets the News Processor's fields in the popup
   "Publish on the site now" (admins only, `manage_options`) files it approved,
   listed under Recently done on the review page with Undo.
 
+### The Lawsuit Processor for reviewers
+
+Signed in, a Lawsuit gets every case field (`inc/extension-lawsuit-processor.php`
+on the site): filing date, status, jurisdiction, parties, facilities, staff and
+organizations mentioned, claims, summary, outcome and settlement amount.
+
+- "Fill the fields with AI" reads the filing or docket on the tab; a PDF tab
+  sends only its address and the site reads the PDF itself. Federal cases are
+  matched on CourtListener (from a CourtListener link, or the case number the AI
+  read): the docket's case name, number, court, filing date and jurisdiction
+  replace what is in the boxes, its parties come first, and the docket page is
+  saved as a second source. The note under the button says when it was used.
+- "Add to the review queue" and "Publish on the site now" (admins only) work as
+  for articles. A site without the lawsuit routes keeps the plain lawsuit send.
+
 ## The real link and the archived copy
 
 Articles carry both: "Link" is the article itself, "Archived copy" a
@@ -106,4 +121,6 @@ case numbers and bill URLs; add domains to `LAWSUIT_HOSTS` or `LEG_HOSTS`.
 - Reviewer: `/extension/submit` (`full=1` with the processor's fields,
   `publish=1` to file it approved) and `/extension/check` (Basic auth, copied in
   `X-KOP-Authorization` for hosts that strip the header); the panel also reads
-  `/extension/news-form`, `/extension/process` (AI) and `/extension/archive`.
+  `/extension/news-form`, `/extension/process` (AI) and `/extension/archive`, and
+  the lawsuit panel `/extension/lawsuit-form` and `/extension/lawsuit-process` (AI +
+  CourtListener; `source_urls` on submit carries the docket page).

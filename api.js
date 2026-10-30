@@ -150,6 +150,16 @@ export function processArticle(body) {
   return request('/process', { method: 'POST', body: JSON.stringify(body) });
 }
 
+// Lawsuit panel (inc/extension-lawsuit-processor.php): the case statuses, whether this account may publish, the AI read
+// (CourtListener-matched for federal cases: the answer's courtlistener {url, by} names the docket).
+export function getLawsuitForm() {
+  return request('/lawsuit-form');
+}
+
+export function processLawsuit(body) {
+  return request('/lawsuit-process', { method: 'POST', body: JSON.stringify(body) });
+}
+
 export function findArchive(url) {
   return request(`/archive?${new URLSearchParams({ url })}`);
 }

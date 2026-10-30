@@ -24,6 +24,15 @@
       <p class="hint" id="aiStatus" role="status">Reads the article on this tab and fills in the summary, warnings, people and type. Check everything before saving.</p>
     </div>
 
+    <div class="detail ai" data-for="lawsuit" data-mode="reviewer">
+      <button type="button" class="secondary" id="lawsuitAiFill">Fill the fields with AI</button>
+      <details class="more">
+        <summary>Instructions for the AI</summary>
+        <label class="field">What to watch for (optional)<textarea name="ls_ai_instructions" rows="2" placeholder="Focus on the staff named"></textarea></label>
+      </details>
+      <p class="hint" id="lawsuitAiStatus" role="status">Reads the filing or docket on this tab (a PDF too) and fills in the case, parties and claims. Federal cases are matched on CourtListener. Check everything before saving.</p>
+    </div>
+
     <label class="field"><span data-for="website article">Title</span><span data-for="lawsuit">Case name</span><span data-for="legislation">Bill title</span><input name="title" required maxlength="300"></label>
     <label class="field" data-for="article" data-mode="reviewer">Alternate title (if the headline is sensational or graphic)<input name="alternate_title" maxlength="300"></label>
     <label class="field">Link<span data-for="article"> (the article itself)</span><input name="url" readonly></label>
@@ -65,6 +74,28 @@
     <div class="detail" data-for="lawsuit">
       <label class="field">Case number<input name="case_number"></label>
       <label class="field">Court<input name="court"></label>
+    </div>
+
+    <div data-for="lawsuit" data-mode="reviewer">
+      <div class="row">
+        <label class="field">Filing date<input name="filing_date" type="date"></label>
+        <label class="field">Case status<select name="ls_status" id="lawsuitStatus"><option value="">Not set</option></select></label>
+      </div>
+      <label class="field">Jurisdiction (Federal, or the state's name)<input name="ls_jurisdiction" placeholder="Federal"></label>
+      <div class="row">
+        <label class="field">Plaintiffs (one per line)<textarea name="plaintiffs" rows="3"></textarea></label>
+        <label class="field">Defendants (one per line)<textarea name="defendants" rows="3"></textarea></label>
+      </div>
+      <label class="field">Facilities mentioned (one per line)<textarea name="facilities_mentioned" rows="2"></textarea></label>
+      <div class="row">
+        <label class="field">Staff mentioned (one per line)<textarea name="staff_mentioned" rows="2"></textarea></label>
+        <label class="field">Organizations mentioned (one per line)<textarea name="organizations_mentioned" rows="2"></textarea></label>
+      </div>
+      <label class="field">Claims (one per line)<textarea name="claims" rows="2"></textarea></label>
+      <label class="field">Summary<textarea name="ls_summary" rows="4"></textarea></label>
+      <label class="field">Outcome<textarea name="outcome" rows="2"></textarea></label>
+      <label class="field">Settlement amount<input name="settlement_amount" placeholder="$1.5 million"></label>
+      <input type="hidden" name="docket_url">
     </div>
 
     <div class="detail" data-for="legislation">

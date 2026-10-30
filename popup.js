@@ -3,7 +3,7 @@ import { classify } from './classify.js';
 import { unwrapPageData } from './archive.js';
 import {
   api, getSettings, isReviewer, buildPayload, submitSource, checkDuplicate, describeDuplicates,
-  getNewsForm, processArticle, findArchive, getWebsiteKinds,
+  getNewsForm, processArticle, findArchive, getWebsiteKinds, getLawsuitForm, processLawsuit,
 } from './api.js';
 
 const $ = (id) => document.getElementById(id);
@@ -15,6 +15,10 @@ $('settingsLink').addEventListener('click', openOptions);
 let reviewer = false;
 // The reviewer panel's choices (inc/extension-news-processor.php): article types, warnings, per-type details.
 let newsForm = null;
+// The lawsuit panel's choices (inc/extension-lawsuit-processor.php): case statuses, can_publish.
+let lawsuitForm = null;
+// The title the popup filled from the page, replaced by the case name the AI or the docket gives.
+let pageTitle = '';
 const details = {};
 const emailBox = () => form.elements.notify_email;
 function syncNewsletter() {
@@ -38,6 +42,8 @@ function showStatus(message, kind, link, linkText = 'Open review queue') {
 
 // The full News Processor shows for reviewers sending an article.
 const processorOn = () => reviewer && form.elements.type.value === 'article' && !!newsForm;
+// The full Lawsuit Processor shows for reviewers sending a lawsuit.
+const lawsuitOn = () => reviewer && form.elements.type.value === 'lawsuit' && !!lawsuitForm;
 
 function refreshVisibility() {
   const type = form.elements.type.value;
@@ -46,13 +52,14 @@ function refreshVisibility() {
     if (el.dataset.for) show = show && el.dataset.for.split(' ').includes(type);
     if (el.dataset.mode) show = show && (el.dataset.mode === 'reviewer') === reviewer;
     if (el.dataset.mode === 'reviewer' && el.dataset.for === 'article') show = show && !!newsForm;
+    if (el.dataset.mode === 'reviewer' && el.dataset.for === 'lawsuit') show = show && !!lawsuitForm;
     if (el.dataset.notFor === 'article-reviewer') show = show && !processorOn();
     el.hidden = !show;
   });
-  const canPublish = processorOn() && newsForm.can_publish;
+  const canPublish = (processorOn() && newsForm.can_publish) || (lawsuitOn() && lawsuitForm.can_publish);
   $('publish').hidden = !canPublish;
   if (!$('submit').disabled) {
-    $('submit').textContent = processorOn() ? 'Add to the review queue' : 'Send to Kids Over Profits';
+    $('submit').textContent = processorOn() || lawsuitOn() ? 'Add to the review queue' : 'Send to Kids Over Profits';
   }
   $('submit').classList.toggle('quiet', canPublish);
 }
@@ -157,6 +164,59 @@ async function aiFill() {
   }
 }
 
+/* ---------- Lawsuit panel ---------- */
+
+function buildLawsuitPanel() {
+  const select = $('lawsuitStatus');
+  for (const st of lawsuitForm.statuses || []) select.add(new Option(st.label, st.value));
+}
+
+// The AI read of the filing on this tab. Empty fields are filled and lists merged, as in the article panel;
+// when the site matched a CourtListener docket, the court record's name, number, court, date and jurisdiction win.
+async function lawsuitAiFill() {
+  const button = $('lawsuitAiFill');
+  const status = $('lawsuitAiStatus');
+  button.disabled = true;
+  status.textContent = 'Reading the case. This takes up to a minute...';
+  try {
+    const { fields: f, courtlistener: cl } = await processLawsuit({
+      url: form.elements.url.value,
+      text: pageData.articleText || pageData.bodySample || '',
+      instructions: form.elements.ls_ai_instructions.value,
+    });
+    const docket = cl && cl.url ? cl : null;
+    const put = (name, value) => {
+      const el = form.elements[name];
+      if (el && value && (docket || !el.value.trim())) el.value = value;
+    };
+    const title = form.elements.title;
+    if (f.case_name && (docket || !title.value.trim() || title.value === pageTitle)) title.value = f.case_name;
+    put('case_number', f.case_number);
+    put('court', f.court);
+    put('ls_jurisdiction', f.jurisdiction);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f.filing_date || '')) put('filing_date', f.filing_date);
+    const st = $('lawsuitStatus');
+    if (f.status && !st.value && [...st.options].some((o) => o.value === f.status)) st.value = f.status;
+    setIfEmpty('outcome', f.outcome);
+    setIfEmpty('settlement_amount', f.settlement_amount);
+    setIfEmpty('ls_summary', f.summary);
+    const facility = form.elements.facility.value.trim();
+    mergeLines('facilities_mentioned', [...(facility ? [facility] : []), ...(f.facilities_mentioned || [])]);
+    for (const k of ['plaintiffs', 'defendants', 'staff_mentioned', 'organizations_mentioned', 'claims']) mergeLines(k, f[k]);
+    const tags = form.elements.tags.value.split(',').map((t) => t.trim()).filter(Boolean);
+    for (const t of f.tags || []) if (!tags.some((x) => x.toLowerCase() === t.toLowerCase())) tags.push(t);
+    form.elements.tags.value = tags.join(', ');
+    if (docket) form.elements.docket_url.value = docket.url;
+    status.textContent = !docket ? 'Filled in. Check each field before saving.'
+      : docket.by === 'link' ? 'Filled in from the CourtListener docket and the AI read. Check each field before saving.'
+        : 'Filled in. The case name, number, court, filing date and parties are from the CourtListener docket for this case number. Check each field before saving.';
+  } catch (err) {
+    status.textContent = err.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 /* ---------- Archived copy ---------- */
 
 async function lookUpArchive(quiet) {
@@ -187,6 +247,7 @@ $('archiveNow').addEventListener('click', () => {
     + (reviewer ? ' or press Find.' : '.');
 });
 $('aiFill').addEventListener('click', aiFill);
+$('lawsuitAiFill').addEventListener('click', lawsuitAiFill);
 
 /* ---------- Start ---------- */
 
@@ -230,12 +291,10 @@ async function init() {
   pageData = unwrapPageData(pageData);
 
   if (reviewer) {
-    try {
-      newsForm = await getNewsForm();
-      buildProcessor();
-    } catch (_) {
-      newsForm = null; // an older site without the panel: plain reviewer sends still work
-    }
+    const [news, lawsuit] = await Promise.allSettled([getNewsForm(), getLawsuitForm()]);
+    // An older site without a panel: plain reviewer sends still work.
+    if (news.status === 'fulfilled') { newsForm = news.value; buildProcessor(); }
+    if (lawsuit.status === 'fulfilled') { lawsuitForm = lawsuit.value; buildLawsuitPanel(); }
   }
 
   await kindsLoaded;
@@ -244,6 +303,7 @@ async function init() {
   for (const [key, value] of Object.entries(payload)) {
     if (form.elements[key] && key !== 'type') form.elements[key].value = value;
   }
+  pageTitle = form.elements.title.value;
   if (pageData.selection) form.elements.notes.value = `"${pageData.selection}"`;
   if (newsForm && payload.description) form.elements.summary.placeholder = payload.description;
   setType(classification.type);
@@ -270,6 +330,7 @@ function collect(publish) {
   payload.selection = (payload.notes || '').includes(pageData.selection || '\u0000') ? '' : pageData.selection || '';
   payload.submitted_via = 'extension';
   delete payload.ai_instructions;
+  delete payload.ls_ai_instructions;
   const panelFields = ['alternate_title', 'article_type', 'location', 'facilities', 'staff', 'survivors', 'summary'];
   if (processorOn()) {
     payload.full = 1;
@@ -284,6 +345,24 @@ function collect(publish) {
     delete payload.facility;
   } else {
     for (const k of panelFields) delete payload[k];
+  }
+  const lawsuitFields = ['filing_date', 'ls_status', 'ls_jurisdiction', 'ls_summary', 'outcome', 'settlement_amount', 'plaintiffs',
+    'defendants', 'facilities_mentioned', 'staff_mentioned', 'organizations_mentioned', 'claims', 'docket_url'];
+  if (lawsuitOn()) {
+    // Every lawsuits column (kop_ext_lawsuit_full_fields()); the docket page goes in as a second source.
+    payload.full = 1;
+    payload.publish = publish ? 1 : 0;
+    payload.case_name = payload.title;
+    payload.status = payload.ls_status;
+    payload.jurisdiction = payload.ls_jurisdiction;
+    payload.summary = payload.ls_summary;
+    for (const k of ['plaintiffs', 'defendants', 'facilities_mentioned', 'staff_mentioned', 'organizations_mentioned', 'claims']) payload[k] = lines(payload[k]);
+    const docket = (payload.docket_url || '').trim();
+    payload.source_urls = docket && docket !== payload.url ? [docket] : [];
+    payload.document_urls = [];
+    for (const k of ['ls_status', 'ls_jurisdiction', 'ls_summary', 'docket_url']) delete payload[k];
+  } else {
+    for (const k of lawsuitFields) delete payload[k];
   }
   if (payload.type !== 'article') delete payload.archive_url;
   if (payload.type !== 'website') delete payload.website_kind;
