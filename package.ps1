@@ -7,7 +7,7 @@ New-Item -ItemType Directory -Force $dist | Out-Null
 $zip = Join-Path $dist "send-to-kop-$version.zip"
 if (Test-Path $zip) { Remove-Item $zip }
 
-$files = @('manifest.json', 'api.js', 'background.js', 'classify.js', 'extract.js',
+$files = @('manifest.json', 'api.js', 'archive.js', 'background.js', 'classify.js', 'extract.js',
            'options.html', 'options.js', 'popup.html', 'popup.js', 'style.css') +
          (Get-ChildItem (Join-Path $root 'icons') -File | ForEach-Object { "icons/$($_.Name)" })
 

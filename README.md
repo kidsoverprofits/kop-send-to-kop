@@ -103,6 +103,10 @@ me". Nothing else is collected and nothing is sent in the background.
 Run `./package.ps1` (PowerShell) to build `dist/send-to-kop-<version>.zip`
 (`dist/` is ignored by git). `npx web-ext lint --source-dir .` checks the
 manifest; one warning is expected (Firefox ignores `background.service_worker`).
+`python tests/test-popup.py` (Python Playwright) opens the popup in Chromium with
+a fake extension API and stubbed site routes: the Lawsuit Processor panel, its AI
+fill and publish body, and the plain send on a site without the lawsuit routes.
+A new runtime file goes in `package.ps1`'s list too, or the store zip lacks it.
 
 - Chrome Web Store (also Edge's store takes the same zip): developer account,
   5 USD once; upload the zip, add screenshots and the privacy text above.
