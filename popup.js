@@ -113,6 +113,8 @@ function drawDetails() {
 }
 
 const lines = (v) => String(v || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+// "Related to": one or more names split by ";" (the site splits them the same way, kop_ext_related_names()).
+const relatedNames = () => String(form.elements.facility.value || '').split(/[;\r\n]+/).map((x) => x.trim()).filter(Boolean);
 const setIfEmpty = (name, value) => {
   const el = form.elements[name];
   if (el && value && !el.value.trim()) el.value = value;
@@ -143,8 +145,7 @@ async function aiFill() {
     setIfEmpty('location', f.location);
     setIfEmpty('alternate_title', f.alternate_title);
     setIfEmpty('summary', f.summary);
-    const facility = form.elements.facility.value.trim();
-    mergeLines('facilities', [...(facility ? [facility] : []), ...(f.facilities || [])]);
+    mergeLines('facilities', [...relatedNames(), ...(f.facilities || [])]);
     mergeLines('staff', f.staff);
     mergeLines('survivors', f.survivors);
     const tags = form.elements.tags.value.split(',').map((t) => t.trim()).filter(Boolean);
@@ -200,8 +201,7 @@ async function lawsuitAiFill() {
     setIfEmpty('outcome', f.outcome);
     setIfEmpty('settlement_amount', f.settlement_amount);
     setIfEmpty('ls_summary', f.summary);
-    const facility = form.elements.facility.value.trim();
-    mergeLines('facilities_mentioned', [...(facility ? [facility] : []), ...(f.facilities_mentioned || [])]);
+    mergeLines('facilities_mentioned', [...relatedNames(), ...(f.facilities_mentioned || [])]);
     for (const k of ['plaintiffs', 'defendants', 'staff_mentioned', 'organizations_mentioned', 'claims']) mergeLines(k, f[k]);
     const tags = form.elements.tags.value.split(',').map((t) => t.trim()).filter(Boolean);
     for (const t of f.tags || []) if (!tags.some((x) => x.toLowerCase() === t.toLowerCase())) tags.push(t);
